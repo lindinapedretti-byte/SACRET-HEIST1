@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Sacred Heist</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: 'Courier New', monospace;
+            touch-action: none;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        #gameCanvas {
+            display: block;
+            margin: 0 auto;
+            background: #1a1a2e;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #fff;
+            font-size: 14px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+            z-index: 10;
+            background: rgba(0,0,0,0.7);
+            padding: 8px;
+            border-radius: 8px;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        #ui div {
+            margin: 3px 0;
+        }
+
+        .ui-highlight {
+            color: #FFD700;
+            font-weight: bold;
+        }
+
+        #stamina-bar {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 300px;
+            height: 25px;
+            background: rgba(0,0,0,0.8);
+            border: 3px solid #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        #stamina-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            transition: width 0.1s;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.3);
+        }
+
+        #stamina-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            font-size: 14px;
+        }
+
+        #alarm-warning {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,0,0,0.9);
+            color: #fff;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            display: none;
+            animation: pulse 0.5s infinite;
+            z-index: 50;
+            border: 3px solid #fff;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.05); }
+        }
+
+        #game-over, #victory {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            padding: 30px;
+            border: 4px solid #fff;
+            border-radius: 12px;
+            color: #fff;
+            text-align: center;
+            display: none;
+            z-index: 100;
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
+            max-width: 90%;
+        }
+
+        #victory {
+            border-color: #FFD700;
+        }
+
+        .btn {
+            background: #4CAF50;
+            color: #fff;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+        }
+
+        #instructions {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            padding: 50px;
+            border: 5px solid #FFD700;
+            border-radius: 15px;
+            color: #fff;
+            text-align: center;
+            z-index: 100;
+            max-width: 650px;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
+        }
+
+        #start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(0,0,0,0.95), rgba(26,26,46,0.95));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .title-main {
+            font-size: 36px;
+            color: #FFD700;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 3px 3px 10px rgba(0,0,0,0.9);
+            margin-bottom: 15px;
+            animation: titleGlow 2s ease-in-out infinite;
+            text-align: center;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 3px 3px 10px rgba(0,0,0,0.9); }
+            50% { text-shadow: 0 0 40px rgba(255, 215, 0, 1), 3px 3px 10px rgba(0,0,0,0.9); }
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #fff;
+            margin-bottom: 30px;
+            font-style: italic;
+            text-align: center;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+            border: none;
+            padding: 18px 50px;
+            font-size: 24px;
+            cursor: pointer;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 8px 20px rgba(255, 215, 0, 0.4);
+            margin-top: 20px;
+            touch-action: manipulation;
+        }
+
+        .start-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 4px 10px rgba(255, 215, 0, 0.6);
+        }
+
+        .game-info {
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            color: #fff;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .info-box {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid rgba(255,215,0,0.3);
+            text-align: center;
+        }
+
+        .info-box h3 {
+            color: #FFD700;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .info-box p {
+            font-size: 13px;
+            margin: 3px 0;
+        }
+
+        .key {
+            display: inline-block;
+            background: #333;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin: 0 5px;
+            border: 2px solid #666;
+            font-weight: bold;
+        }
+
+        h1 {
+            color: #FFD700;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="start-screen">
+        <h1 class="title-main">🎭 THE SACRED HEIST 🎭</h1>
+        <p class="subtitle">Un colpo da maestro nella cattedrale</p>
+        
+        <div class="game-info">
+            <div class="info-box">
+                <h3>🎯 OBIETTIVO</h3>
+                <p>Ruba i 6 pezzi del<br>quadro sacro e fuggi!</p>
+            </div>
+            <div class="info-box">
+                <h3>🎮 CONTROLLI</h3>
+                <p><span class="key">←→</span> Muovi</p>
+                <p><span class="key">SHIFT</span> Sprint</p>
+                <p><span class="key">SPAZIO</span> Salta</p>
+            </div>
+            <div class="info-box">
+                <h3>⚠️ ATTENZIONE</h3>
+                <p>Il poliziotto ti insegue!<br>Evita il suo cono visivo rosso</p>
+            </div>
+        </div>
+
+        <button class="start-btn" onclick="closeStartScreen()">▶ INIZIA IL COLPO</button>
+    </div>
+
+    <div id="ui">
+        <div>🖼️ Pezzi: <span class="ui-highlight" id="pieces">0</span>/6</div>
+        <div>⭐ Punteggio: <span class="ui-highlight" id="score">0</span></div>
+        <div>🔥 Combo: x<span class="ui-highlight" id="combo">1</span></div>
+        <div id="hidden-status" style="color: #4CAF50; display: none;">🛡️ NASCOSTO</div>
+        <div id="spotted-status" style="color: #FF4444; display: none;">⚠️ INDIVIDUATO!</div>
+    </div>
+
+    <div id="stamina-bar">
+        <div id="stamina-fill" style="width: 100%;"></div>
+        <div id="stamina-text">STAMINA</div>
+    </div>
+
+    <div id="alarm-warning">
+        ⚠️ ALLARME! TEMPO: <span id="alarm-time">30</span>s ⚠️
+    </div>
+
+    <div id="instructions" style="display: none;">
+        <h1>🎭 THE SACRED HEIST 🎭</h1>
+        <p style="margin: 20px 0; font-size: 18px;">Sei un ladro d'arte! Ruba i <strong>6 pezzi del quadro</strong> nascosti nella chiesa senza farti catturare dal poliziotto!</p>
+        <div style="margin: 25px 0;">
+            <p style="margin-bottom: 10px;"><span class="key">←</span> <span class="key">→</span> Movimento</p>
+            <p style="margin-bottom: 10px;"><span class="key">SHIFT</span> Sprint (consuma stamina)</p>
+            <p><span class="key">SPAZIO</span> Salto</p>
+        </div>
+        <p style="margin-top: 25px; font-size: 15px; color: #FFD700;">
+            💡 <strong>Strategia:</strong> Usa i nascondigli marroni per evitare il cono visivo rosso del poliziotto. Quando raccogli l'ultimo pezzo, scatta l'allarme e hai 30 secondi per fuggire!
+        </p>
+        <button class="btn" onclick="startGame()">🏃 INIZIA IL COLPO</button>
+    </div>
+
+    <div id="game-over">
+        <h1>❌ SEI STATO CATTURATO! ❌</h1>
+        <p style="margin: 20px 0; font-size: 20px;">Il poliziotto ti ha preso!</p>
+        <p style="font-size: 18px;">Pezzi Raccolti: <span id="pieces-collected">0</span>/6</p>
+        <p style="margin: 20px 0; font-size: 24px; color: #FFD700;">Punteggio Finale: <span id="final-score">0</span></p>
+        <button class="btn" onclick="restartGame()">🔄 RIPROVA</button>
+    </div>
+
+    <div id="victory">
+        <h1>🏆 COLPO RIUSCITO! 🏆</h1>
+        <p style="margin: 20px 0; font-size: 20px;">Sei fuggito con tutti i pezzi del quadro!</p>
+        <p style="margin: 20px 0; font-size: 28px; color: #FFD700;">Punteggio Finale: <span id="victory-score">0</span></p>
+        <p style="font-size: 16px; color: #4CAF50;">✨ Sei un vero maestro del crimine! ✨</p>
+        <button class="btn" onclick="restartGame()">🎮 GIOCA ANCORA</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Responsive canvas sizing
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const aspectRatio = 1200 / 700;
+            
+            if (window.innerWidth / window.innerHeight > aspectRatio) {
+                canvas.height = window.innerHeight;
+                canvas.width = canvas.height * aspectRatio;
+            } else {
+                canvas.width = window.innerWidth;
+                canvas.height = canvas.width / aspectRatio;
+            }
+        }
+        
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const GAME_WIDTH = 1200;
+        const GAME_HEIGHT = 700;
+
+        let gameStarted = false;
+        let gameOver = false;
+        let victory = false;
+
+        // Carica immagini
+        const bgImage = new Image();
+        bgImage.src = 'https://i.postimg.cc/HkXd6KWT/Progetto-senza-titolo.png';
+
+        const thiefImage = new Image();
+        thiefImage.src = 'https://i.postimg.cc/85WRcTTc/Chat-GPT-Image-17-ott-2025-19-15-45-1.png';
+
+        const copImage = new Image();
+        copImage.src = 'https://i.postimg.cc/MK09tmkC/Chat-GPT-Image-17-ott-2025-19-18-14-1.png';
+
+        // Player
+        const player = {
+            x: 100,
+            y: 500,
+            width: 45,
+            height: 65,
+            speed: 5,
+            sprintSpeed: 9,
+            jumpPower: 16,
+            velocityY: 0,
+            isJumping: false,
+            stamina: 100,
+            maxStamina: 100,
+            staminaRegenRate: 0.4,
+            staminaDrainRate: 0.7,
+            isSprinting: false,
+            isHidden: false,
+            direction: 1,
+            wasSpotted: false
+        };
+
+        // Cop with enhanced AI
+        const cop = {
+            x: 1000,
+            y: 500,
+            width: 45,
+            height: 65,
+            baseSpeed: 3.5,
+            speed: 3.5,
+            detectionRange: 350,
+            chaseSpeed: 6,
+            alarmChaseSpeed: 8,
+            velocityY: 0,
+            isJumping: false,
+            canSeePlayer: false,
+            patrolLeft: 700,
+            patrolRight: 1100,
+            patrolDirection: -1,
+            direction: -1,
+            lastSeenPlayerX: 0,
+            searchTimer: 0
+        };
+
+        // Game state
+        let score = 0;
+        let combo = 1;
+        let comboTimer = 0;
+        let piecesCollected = 0;
+        let alarmActive = false;
+        let alarmTimer = 0;
+        const ALARM_DURATION = 1800; // 30 seconds at 60fps
+
+        // Platforms - more distributed for exploration
+        const platforms = [
+            {x: 0, y: 650, width: 1200, height: 50}, // Ground
+            {x: 100, y: 540, width: 180, height: 20},
+            {x: 380, y: 460, width: 160, height: 20},
+            {x: 620, y: 380, width: 200, height: 20},
+            {x: 200, y: 320, width: 180, height: 20},
+            {x: 900, y: 480, width: 180, height: 20},
+            {x: 480, y: 220, width: 180, height: 20},
+            {x: 750, y: 300, width: 150, height: 20},
+            {x: 50, y: 180, width: 140, height: 20}
+        ];
+
+        // Hiding spots (benches/confessionals) - strategically placed
+        const hidingSpots = [
+            {x: 60, y: 590, width: 70, height: 60, color: 'rgba(101, 67, 33, 0.7)'},
+            {x: 420, y: 410, width: 70, height: 50, color: 'rgba(101, 67, 33, 0.7)'},
+            {x: 780, y: 250, width: 70, height: 50, color: 'rgba(101, 67, 33, 0.7)'},
+            {x: 950, y: 590, width: 70, height: 60, color: 'rgba(101, 67, 33, 0.7)'}
+        ];
+
+        // Art pieces - hidden throughout the church
+        const artPieces = [
+            {x: 150, y: 500, width: 35, height: 35, collected: false, sparkle: 0},
+            {x: 440, y: 420, width: 35, height: 35, collected: false, sparkle: 0},
+            {x: 700, y: 340, width: 35, height: 35, collected: false, sparkle: 0},
+            {x: 260, y: 280, width: 35, height: 35, collected: false, sparkle: 0},
+            {x: 100, y: 140, width: 35, height: 35, collected: false, sparkle: 0},
+            {x: 970, y: 440, width: 35, height: 35, collected: false, sparkle: 0}
+        ];
+
+        // Exit door - only activates after collecting all pieces
+        const exitDoor = {
+            x: 1120,
+            y: 540,
+            width: 70,
+            height: 110,
+            active: false,
+            pulse: 0
+        };
+
+        // Input
+        const keys = {};
+        
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.code === 'Space') e.preventDefault();
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        function startGame() {
+            document.getElementById('instructions').style.display = 'none';
+            gameStarted = true;
+            gameLoop();
+        }
+
+        const gravity = 0.6;
+
+        function updatePlayer() {
+            // Sprint mechanic
+            let currentSpeed = player.speed;
+            
+            if (keys['ShiftLeft'] || keys['ShiftRight']) {
+                if (player.stamina > 0) {
+                    currentSpeed = player.sprintSpeed;
+                    player.isSprinting = true;
+                    player.stamina -= player.staminaDrainRate;
+                    if (player.stamina < 0) player.stamina = 0;
+                } else {
+                    player.isSprinting = false;
+                }
+            } else {
+                player.isSprinting = false;
+                if (player.stamina < player.maxStamina) {
+                    player.stamina += player.staminaRegenRate;
+                    if (player.stamina > player.maxStamina) player.stamina = player.maxStamina;
+                }
+            }
+
+            // Movement
+            if (keys['ArrowLeft']) {
+                player.x -= currentSpeed;
+                player.direction = -1;
+            }
+            if (keys['ArrowRight']) {
+                player.x += currentSpeed;
+                player.direction = 1;
+            }
+
+            // Jump
+            if (keys['Space'] && !player.isJumping) {
+                player.velocityY = -player.jumpPower;
+                player.isJumping = true;
+            }
+
+            // Gravity
+            player.velocityY += gravity;
+            player.y += player.velocityY;
+
+            // Collision with platforms
+            player.isJumping = true;
+            platforms.forEach(platform => {
+                if (player.x + player.width > platform.x &&
+                    player.x < platform.x + platform.width &&
+                    player.y + player.height > platform.y &&
+                    player.y + player.height < platform.y + 25 &&
+                    player.velocityY > 0) {
+                    player.y = platform.y - player.height;
+                    player.velocityY = 0;
+                    player.isJumping = false;
+                }
+            });
+
+            // Check hiding spots
+            player.isHidden = false;
+            hidingSpots.forEach(spot => {
+                if (player.x + player.width > spot.x &&
+                    player.x < spot.x + spot.width &&
+                    player.y + player.height > spot.y &&
+                    player.y < spot.y + spot.height) {
+                    player.isHidden = true;
+                }
+            });
+
+            // Update UI hiding status
+            document.getElementById('hidden-status').style.display = player.isHidden ? 'block' : 'none';
+            document.getElementById('spotted-status').style.display = 
+                (cop.canSeePlayer && !player.isHidden) ? 'block' : 'none';
+
+            // Boundaries
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > GAME_WIDTH) player.x = GAME_WIDTH - player.width;
+
+            // Update stamina bar
+            const staminaPercent = (player.stamina / player.maxStamina * 100);
+            document.getElementById('stamina-fill').style.width = staminaPercent + '%';
+            
+            // Change color based on stamina level
+            if (staminaPercent > 50) {
+                document.getElementById('stamina-fill').style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)';
+            } else if (staminaPercent > 25) {
+                document.getElementById('stamina-fill').style.background = 'linear-gradient(90deg, #FFA726, #FFB74D)';
+            } else {
+                document.getElementById('stamina-fill').style.background = 'linear-gradient(90deg, #EF5350, #E57373)';
+            }
+        }
+
+        function updateCop() {
+            // Calculate distance and angle to player
+            const distX = player.x - cop.x;
+            const distY = player.y - cop.y;
+            const distance = Math.sqrt(distX * distX + distY * distY);
+            const angleToPlayer = Math.atan2(distY, distX);
+
+            // Enhanced vision cone detection
+            cop.canSeePlayer = false;
+            if (!player.isHidden) {
+                if (distance < cop.detectionRange) {
+                    const copFacingAngle = cop.direction > 0 ? 0 : Math.PI;
+                    let angleDiff = Math.abs(angleToPlayer - copFacingAngle);
+                    if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+                    
+                    const visionConeAngle = alarmActive ? Math.PI : Math.PI / 2.5;
+                    
+                    if (angleDiff < visionConeAngle) {
+                        cop.canSeePlayer = true;
+                        cop.lastSeenPlayerX = player.x;
+                        cop.searchTimer = 180; // 3 seconds
+                    }
+                }
+            }
+
+            // Determine cop speed based on state
+            let currentSpeed = cop.baseSpeed;
+            if (alarmActive) {
+                currentSpeed = cop.alarmChaseSpeed;
+            } else if (cop.canSeePlayer) {
+                currentSpeed = cop.chaseSpeed;
+            } else if (cop.searchTimer > 0) {
+                currentSpeed = cop.chaseSpeed * 0.7;
+                cop.searchTimer--;
+            }
+
+            // AI behavior
+            if (cop.canSeePlayer || alarmActive) {
+                // Active chase mode
+                if (Math.abs(distX) > 25) {
+                    if (distX > 0) {
+                        cop.x += currentSpeed;
+                        cop.direction = 1;
+                    } else {
+                        cop.x -= currentSpeed;
+                        cop.direction = -1;
+                    }
+                }
+
+                // Smart jumping - tries to reach player on different platforms
+                if (Math.abs(distY) > 60 && Math.abs(distX) < 150 && !cop.isJumping) {
+                    cop.velocityY = -14;
+                    cop.isJumping = true;
+                }
+            } else if (cop.searchTimer > 0) {
+                // Search mode - moves toward last seen position
+                if (Math.abs(cop.x - cop.lastSeenPlayerX) > 30) {
+                    if (cop.x < cop.lastSeenPlayerX) {
+                        cop.x += currentSpeed;
+                        cop.direction = 1;
+                    } else {
+                        cop.x -= currentSpeed;
+                        cop.direction = -1;
+                    }
+                }
+            } else {
+                // Patrol mode
+                cop.x += currentSpeed * cop.patrolDirection;
+                cop.direction = cop.patrolDirection;
+                
+                if (cop.x < cop.patrolLeft) {
+                    cop.patrolDirection = 1;
+                } else if (cop.x > cop.patrolRight) {
+                    cop.patrolDirection = -1;
+                }
+            }
+
+            // Gravity for cop
+            cop.velocityY += gravity;
+            cop.y += cop.velocityY;
+
+            // Collision with platforms
+            cop.isJumping = true;
+            platforms.forEach(platform => {
+                if (cop.x + cop.width > platform.x &&
+                    cop.x < platform.x + platform.width &&
+                    cop.y + cop.height > platform.y &&
+                    cop.y + cop.height < platform.y + 25 &&
+                    cop.velocityY > 0) {
+                    cop.y = platform.y - cop.height;
+                    cop.velocityY = 0;
+                    cop.isJumping = false;
+                }
+            });
+
+            // Check collision with player - CAUGHT!
+            if (player.x + player.width - 10 > cop.x &&
+                player.x + 10 < cop.x + cop.width &&
+                player.y + player.height - 10 > cop.y &&
+                player.y + 10 < cop.y + cop.height) {
+                gameOver = true;
+                document.getElementById('game-over').style.display = 'block';
+                document.getElementById('final-score').textContent = score;
+                document.getElementById('pieces-collected').textContent = piecesCollected;
+            }
+        }
+
+        function updateCollectibles() {
+            // Check art piece collection
+            artPieces.forEach(piece => {
+                if (!piece.collected) {
+                    piece.sparkle = (piece.sparkle + 0.1) % (Math.PI * 2);
+                    
+                    if (player.x + player.width - 10 > piece.x &&
+                        player.x + 10 < piece.x + piece.width &&
+                        player.y + player.height - 10 > piece.y &&
+                        player.y + 10 < piece.y + piece.height) {
+                        
+                        piece.collected = true;
+                        piecesCollected++;
+                        
+                        // Combo system - bonus if not spotted
+                        if (comboTimer > 0 && !cop.canSeePlayer) {
+                            combo++;
+                        } else {
+                            combo = cop.canSeePlayer ? 1 : 2;
+                        }
+                        comboTimer = 180; // 3 seconds
+                        
+                        const comboBonus = combo > 1 ? 50 * (combo - 1) : 0;
+                        const stealthBonus = cop.canSeePlayer ? 0 : 100;
+                        score += 100 + comboBonus + stealthBonus;
+                        
+                        document.getElementById('pieces').textContent = piecesCollected;
+                        document.getElementById('score').textContent = score;
+                        document.getElementById('combo').textContent = combo;
+
+                        // Activate alarm when last piece is collected
+                        if (piecesCollected === 6) {
+                            alarmActive = true;
+                            alarmTimer = ALARM_DURATION;
+                            exitDoor.active = true;
+                            document.getElementById('alarm-warning').style.display = 'block';
+                        }
+                    }
+                }
+            });
+
+            // Combo timer decay
+            if (comboTimer > 0) {
+                comboTimer--;
+                if (comboTimer === 0 && combo > 1) {
+                    combo = 1;
+                    document.getElementById('combo').textContent = combo;
+                }
+            }
+
+            // Alarm countdown
+            if (alarmActive) {
+                alarmTimer--;
+                const secondsLeft = Math.ceil(alarmTimer / 60);
+                document.getElementById('alarm-time').textContent = secondsLeft;
+                
+                if (alarmTimer <= 0) {
+                    gameOver = true;
+                    document.getElementById('game-over').style.display = 'block';
+                    document.getElementById('final-score').textContent = score;
+                    document.getElementById('pieces-collected').textContent = piecesCollected;
+                }
+            }
+
+            // Check exit door
+            if (exitDoor.active) {
+                exitDoor.pulse = (exitDoor.pulse + 0.05) % (Math.PI * 2);
+                
+                if (player.x + player.width - 10 > exitDoor.x &&
+                    player.x + 10 < exitDoor.x + exitDoor.width &&
+                    player.y + player.height - 10 > exitDoor.y &&
+                    player.y + 10 < exitDoor.y + exitDoor.height) {
+                    victory = true;
+                    const timeBonus = Math.floor(alarmTimer / 6) * 10;
+                    score += timeBonus + 500;
+                    document.getElementById('victory').style.display = 'block';
+                    document.getElementById('victory-score').textContent = score;
+                }
+            }
+        }
+
+        function draw() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Scale context to match game dimensions
+            const scaleX = canvas.width / GAME_WIDTH;
+            const scaleY = canvas.height / GAME_HEIGHT;
+            ctx.save();
+            ctx.scale(scaleX, scaleY);
+
+            // Draw background
+            if (bgImage.complete) {
+                ctx.drawImage(bgImage, 0, 0, GAME_WIDTH, GAME_HEIGHT);
+            }
+
+            // Draw platforms (subtle wooden beams)
+            platforms.forEach(platform => {
+                if (platform.y < 650) {
+                    ctx.fillStyle = 'rgba(101, 67, 33, 0.4)';
+                    ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                    ctx.strokeStyle = 'rgba(139, 90, 43, 0.6)';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(platform.x, platform.y, platform.width, platform.height);
+                }
+            });
+
+            // Draw hiding spots (confessionals/benches)
+            hidingSpots.forEach(spot => {
+                ctx.fillStyle = spot.color;
+                ctx.fillRect(spot.x, spot.y, spot.width, spot.height);
+                ctx.strokeStyle = '#654321';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(spot.x, spot.y, spot.width, spot.height);
+                
+                // Add detail lines
+                ctx.strokeStyle = 'rgba(101, 67, 33, 0.5)';
+                ctx.lineWidth = 1;
+                for (let i = 1; i < 3; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(spot.x + (spot.width / 3) * i, spot.y);
+                    ctx.lineTo(spot.x + (spot.width / 3) * i, spot.y + spot.height);
+                    ctx.stroke();
+                }
+            });
+
+            // Draw art pieces with sparkle effect
+            artPieces.forEach(piece => {
+                if (!piece.collected) {
+                    // Main piece
+                    const gradient = ctx.createRadialGradient(
+                        piece.x + piece.width/2, piece.y + piece.height/2, 0,
+                        piece.x + piece.width/2, piece.y + piece.height/2, piece.width/2
+                    );
+                    gradient.addColorStop(0, '#FFD700');
+                    gradient.addColorStop(1, '#FFA500');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(piece.x, piece.y, piece.width, piece.height);
+                    
+                    // Border
+                    ctx.strokeStyle = '#FF8C00';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(piece.x, piece.y, piece.width, piece.height);
+                    
+                    // Animated sparkles
+                    const sparkleIntensity = Math.abs(Math.sin(piece.sparkle));
+                    ctx.fillStyle = `rgba(255, 255, 255, ${sparkleIntensity * 0.8})`;
+                    ctx.fillRect(piece.x + 8, piece.y + 8, 8, 8);
+                    ctx.fillRect(piece.x + piece.width - 16, piece.y + 8, 8, 8);
+                    
+                    // Glow effect
+                    ctx.shadowBlur = 15 + sparkleIntensity * 10;
+                    ctx.shadowColor = '#FFD700';
+                    ctx.strokeRect(piece.x - 2, piece.y - 2, piece.width + 4, piece.height + 4);
+                    ctx.shadowBlur = 0;
+                }
+            });
+
+            // Draw exit door with pulsing effect
+            if (exitDoor.active) {
+                const pulseIntensity = Math.abs(Math.sin(exitDoor.pulse));
+                
+                ctx.fillStyle = `rgba(0, 255, 0, ${0.5 + pulseIntensity * 0.5})`;
+                ctx.fillRect(exitDoor.x, exitDoor.y, exitDoor.width, exitDoor.height);
+                
+                ctx.strokeStyle = '#00FF00';
+                ctx.lineWidth = 4 + pulseIntensity * 2;
+                ctx.strokeRect(exitDoor.x, exitDoor.y, exitDoor.width, exitDoor.height);
+                
+                // Door text
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 16px "Courier New"';
+                ctx.textAlign = 'center';
+                ctx.fillText('USCITA', exitDoor.x + exitDoor.width/2, exitDoor.y + exitDoor.height/2);
+                
+                // Glow effect
+                ctx.shadowBlur = 20 + pulseIntensity * 15;
+                ctx.shadowColor = '#00FF00';
+                ctx.strokeRect(exitDoor.x - 3, exitDoor.y - 3, exitDoor.width + 6, exitDoor.height + 6);
+                ctx.shadowBlur = 0;
+            }
+
+            // Draw cop's vision cone BEFORE drawing characters
+            if ((cop.canSeePlayer || alarmActive) && !player.isHidden) {
+                const visionRange = alarmActive ? cop.detectionRange * 1.3 : cop.detectionRange;
+                const visionAngle = alarmActive ? Math.PI * 0.8 : Math.PI / 2.5;
+                
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.15)';
+                ctx.beginPath();
+                const coneStartAngle = cop.direction > 0 ? -visionAngle/2 : Math.PI - visionAngle/2;
+                ctx.moveTo(cop.x + cop.width/2, cop.y + cop.height/2);
+                ctx.arc(
+                    cop.x + cop.width/2, 
+                    cop.y + cop.height/2, 
+                    visionRange,
+                    coneStartAngle,
+                    coneStartAngle + visionAngle
+                );
+                ctx.closePath();
+                ctx.fill();
+                
+                // Vision cone outline
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            // Draw cop with image
+            if (copImage.complete) {
+                ctx.save();
+                if (cop.direction < 0) {
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(copImage, -cop.x - cop.width, cop.y, cop.width, cop.height);
+                } else {
+                    ctx.drawImage(copImage, cop.x, cop.y, cop.width, cop.height);
+                }
+                ctx.restore();
+            } else {
+                // Fallback if image not loaded
+                ctx.fillStyle = '#0066CC';
+                ctx.fillRect(cop.x, cop.y, cop.width, cop.height);
+                ctx.fillStyle = '#fff';
+                ctx.font = '12px Arial';
+                ctx.fillText('👮', cop.x + 10, cop.y + 30);
+            }
+
+            // Draw player with image
+            if (thiefImage.complete) {
+                ctx.save();
+                
+                // Add glow if hidden
+                if (player.isHidden) {
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#4CAF50';
+                }
+                
+                if (player.direction < 0) {
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(thiefImage, -player.x - player.width, player.y, player.width, player.height);
+                } else {
+                    ctx.drawImage(thiefImage, player.x, player.y, player.width, player.height);
+                }
+                ctx.restore();
+            } else {
+                // Fallback if image not loaded
+                ctx.fillStyle = '#000';
+                ctx.fillRect(player.x, player.y, player.width, player.height);
+                ctx.fillStyle = '#fff';
+                ctx.font = '12px Arial';
+                ctx.fillText('🥷', player.x + 10, player.y + 30);
+            }
+
+            // Draw hidden status indicator around player
+            if (player.isHidden) {
+                ctx.strokeStyle = '#4CAF50';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(player.x - 5, player.y - 5, player.width + 10, player.height + 10);
+                ctx.setLineDash([]);
+            }
+
+            // Draw spotted indicator
+            if (cop.canSeePlayer && !player.isHidden) {
+                ctx.strokeStyle = '#FF4444';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(player.x - 5, player.y - 5, player.width + 10, player.height + 10);
+                ctx.setLineDash([]);
+                
+                // Alert icon above player
+                ctx.fillStyle = '#FF4444';
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('⚠️', player.x + player.width/2, player.y - 10);
+            }
+
+            // Alarm flash effect
+            if (alarmActive) {
+                const flashIntensity = Math.floor(Date.now() / 300) % 2 === 0 ? 0.25 : 0.1;
+                ctx.fillStyle = `rgba(255, 0, 0, ${flashIntensity})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Tutorial hints (only show first 5 seconds)
+            if (gameStarted && !alarmActive && Date.now() - gameStartTime < 5000) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(GAME_WIDTH/2 - 150, GAME_HEIGHT - 80, 300, 60);
+                ctx.fillStyle = '#FFD700';
+                ctx.font = '16px "Courier New"';
+                ctx.textAlign = 'center';
+                ctx.fillText('Cerca i pezzi dorati! 🖼️', GAME_WIDTH/2, GAME_HEIGHT - 50);
+                ctx.fillStyle = '#fff';
+                ctx.font = '14px "Courier New"';
+                ctx.fillText('Evita il cono rosso del poliziotto', GAME_WIDTH/2, GAME_HEIGHT - 30);
+            }
+            
+            ctx.restore();
+        }
+
+        let gameStartTime = 0;
+
+        function gameLoop() {
+            if (!gameStarted || gameOver || victory) return;
+
+            updatePlayer();
+            updateCop();
+            updateCollectibles();
+            draw();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start timer when game begins
+        function closeStartScreen() {
+            document.getElementById('start-screen').style.display = 'none';
+            gameStarted = true;
+            gameStartTime = Date.now();
+            gameLoop();
+        }
+
+        function startGame() {
+            document.getElementById('instructions').style.display = 'none';
+            gameStarted = true;
+            gameStartTime = Date.now();
+            gameLoop();
+        }
+
+        function restartGame() {
+            // Reset game state
+            gameStarted = false;
+            gameOver = false;
+            victory = false;
+            score = 0;
+            combo = 1;
+            comboTimer = 0;
+            piecesCollected = 0;
+            alarmActive = false;
+            alarmTimer = 0;
+            
+            // Reset player
+            player.x = 100;
+            player.y = 500;
+            player.velocityY = 0;
+            player.isJumping = false;
+            player.stamina = 100;
+            player.isSprinting = false;
+            player.isHidden = false;
+            player.direction = 1;
+            
+            // Reset cop
+            cop.x = 1000;
+            cop.y = 500;
+            cop.velocityY = 0;
+            cop.isJumping = false;
+            cop.canSeePlayer = false;
+            cop.patrolDirection = -1;
+            cop.direction = -1;
+            cop.searchTimer = 0;
+            
+            // Reset art pieces
+            artPieces.forEach(piece => {
+                piece.collected = false;
+                piece.sparkle = 0;
+            });
+            
+            // Reset exit door
+            exitDoor.active = false;
+            exitDoor.pulse = 0;
+            
+            // Update UI
+            document.getElementById('pieces').textContent = '0';
+            document.getElementById('score').textContent = '0';
+            document.getElementById('combo').textContent = '1';
+            document.getElementById('stamina-fill').style.width = '100%';
+            document.getElementById('alarm-warning').style.display = 'none';
+            
+            // Hide end screens
+            document.getElementById('game-over').style.display = 'none';
+            document.getElementById('victory').style.display = 'none';
+            
+            // Restart game
+            gameStarted = true;
+            gameStartTime = Date.now();
+            gameLoop();
+        }
+
+        // Initial draw when images load
+        let imagesLoaded = 0;
+        const totalImages = 3;
+
+        function checkImagesLoaded() {
+            imagesLoaded++;
+            if (imagesLoaded === totalImages) {
+                draw();
+            }
+        }
+
+        bgImage.onload = checkImagesLoaded;
+        thiefImage.onload = checkImagesLoaded;
+        copImage.onload = checkImagesLoaded;
+
+        // Fallback - draw even if images don't load
+        setTimeout(() => {
+            if (!gameStarted) draw();
+        }, 1000);
+    </script>
+</body>
+</html>
